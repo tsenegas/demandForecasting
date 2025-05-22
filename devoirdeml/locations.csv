@@ -1,0 +1,11 @@
+Location ID,Province,Region Type,Surface Area
+0001,QC,Urban,"30,000"
+0002,QC,Urban,
+0003,QC,Semi-Urban,"50,000"
+0004,QC,Rural,"40,000"
+0005,QC,Urban,40000
+0006,QC,Urban,30000
+0007,QC,Semi-Urban,35000
+0008,QC,Rural,35000
+0009,QC,Rural,
+0010,QC,Urban,45000
