@@ -1,0 +1,29 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "IVADO Labs - Demand Forecasting Assessment"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: eda_R.qmd
+        text: EDA with R 
+      - href: modeling_R.qmd
+        text: Demand Forecasting with R
+      - href: modeling_Python.qmd
+        text: Demand Forecasting with Python  
+    right:
+      - icon: github
+        href: https://github.com/tsenegas/demandForecasting
+      - about.qmd
+            
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+editor: visual
