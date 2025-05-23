@@ -1,0 +1,346 @@
+---
+title: "Exploratory Data Analysis"
+author: "Th. Senegas"
+date: Sys.Date()
+toc: true
+format:
+  html:
+    html-math-method: katex
+    code-tools: true
+    self-contained: true
+execute:
+  warning: false
+---
+
+Below you will find an EDA of the data provided.
+
+# 1. Loading Packages and Data
+
+```{r }
+#| code-fold: true
+
+# Load required libraries
+library(tidyverse)
+library(skimr)
+library(lubridate)
+library(purrr)        
+library(ggplot2)
+library(scales)
+library(highcharter)
+library(naniar)
+
+# Read csv files
+products    <- read_csv("./data/products.csv") |> 
+    glimpse()
+locations   <- read_csv("./data/locations.csv") |> 
+    glimpse()
+transactions<- read_csv("./data/transactions.csv") |> 
+    glimpse()
+
+
+```
+
+# 2. Join the 3 csv files together and overview of the data
+
+```{r }
+#| code-fold: true
+
+df <- transactions |> 
+  # ensure Date is a Date
+  mutate(Date = lubridate::ymd(Date)) |> 
+  left_join(products,    by = "SKU") |> 
+  left_join(locations,   by = "Location ID")
+
+skim(df)
+
+```
+
+**What we learn:**
+
+-   7,951 unique transactions accross 10 differents locations (store) for 3 differents products (SKU) divided into two product families (X1-G3 or X1-S7)
+-   Date range: 2021-02-01 → 2025-03-31
+-   SKU counts: Gamma 3 973, Alpha 3 094, Beta 884
+-   Quantity: mean 1.02, sd 1.49, min –1, max 132
+-   Value (\$): mean 68.67, sd 151.12, min –99.99, max 13 198.68
+
+# 3. Looking for missing data and anomalies
+
+```{r }
+#| code-fold: true
+
+# 3a) Missingness plot
+gg_miss_var(df) +
+     labs(title = "Missing values per variable")
+
+# 3b) Tabulate missing counts
+df |> 
+ summarise_all(~ sum(is.na(.)))
+
+# 3c) Anomalies: negative quantities (likely returns)
+returns <- df |> 
+ filter(Quantity < 0)
+
+# 3d) How many returns?
+n_returns <- nrow(returns)
+
+# 3e) One-off very large orders?
+large_orders <- df |> 
+ filter(Quantity > 10)
+```
+
+**What we find**
+
+-   Missing: Of the 10 different locations, surface information is missing for two of them. These two stores account for around 30% of all transactions (2,424 transactions out of a total of 7,951).
+-   Returns: 79 transactions with Quantity = –1 (and matching negative Value (\$))
+-   Bulk orders: only 1 transaction with Quantity = 132; while 97.2% of transactions have a quantity of 1 and few of 2 or 3 excluding the 79 returns.
+
+# 4. Monthly dataset
+
+In view of the number of observations (transactions) available and the objective of producing a demand forecast for inventory management purposes, we will aggregate the data on a monthly basis in order to produce a monthly forecast. To do this, we'll keep the few observations (79) that we assume are returns. However, after a little deep dive for the bulk orders, we will remove this observation from our dataset.
+
+```{r }
+#| code-fold: true
+
+df_monthly <- df |> 
+    # Remove bulk order
+    subset(Quantity <= 10) |> 
+    # Create week value and unit price
+    mutate(
+        month = floor_date(as.Date(Date), unit = "month"),
+        unit_price = `Value ($)` / Quantity
+    ) |>    
+    group_by(month, `Location ID`, SKU, unit_price) |>
+    mutate(
+        quantity = sum(Quantity),
+        sales_cad = sum(`Value ($)`)
+    ) |>
+    select(-`Transaction ID`) |>
+    select(month, `Location ID`, SKU, quantity, unit_price, sales_cad, `Product Class`, `Product Family`, `MSRP ($)`, `Margin (%)`, `Region Type`, `Surface Area`) |> 
+    ungroup() |>
+    unique()
+  
+write.csv(df_monthly, './data/df_monthly.csv', row.names = F)  
+```
+
+# 5. Plot for Describing and understand the data
+
+## 5.1 Quantity Sold per month per store (all products combined)
+
+```{r }
+#| code-fold: true
+
+df_hc_qty <- df_monthly |> 
+    group_by(month, `Location ID`) |> 
+    mutate(
+        quantity = sum(quantity)
+    ) |> 
+    ungroup() |> 
+    select(month, `Location ID`, quantity) |> 
+    unique() |> 
+    mutate(month_ts = datetime_to_timestamp(month)) 
+
+hc_loc <- highchart(type = "stock") |> 
+  hc_title(text = "Monthly Quantity by Location") |> 
+  hc_xAxis(type = "datetime")
+
+for(loc in unique(df_hc_qty$`Location ID`)) {
+  tmp <- df_hc_qty |> 
+   filter(`Location ID` == loc)
+  hc_loc <- hc_loc |> 
+    hc_add_series(
+      data = list_parse2(tibble(x = tmp$month_ts, y = tmp$quantity)),
+      name = loc,
+      type = "line"
+    )
+}
+
+hc_loc |> 
+  hc_legend(enabled = TRUE, align = "center", layout = "horizontal", verticalAlign = "bottom")
+
+```
+
+## 5.2 Quantity Sold per month per Region type (all products combined)
+
+```{r }
+#| code-fold: true
+
+df_hc_qty <- df_monthly |> 
+    group_by(month, `Region Type`) |> 
+    mutate(
+        quantity = sum(quantity)
+    ) |> 
+    ungroup() |> 
+    select(month, `Region Type`, quantity) |> 
+    unique() |> 
+    mutate(month_ts = datetime_to_timestamp(month)) 
+
+hc_loc <- highchart(type = "stock") |> 
+  hc_title(text = "Monthly Quantity by Region Type") |> 
+  hc_xAxis(type = "datetime")
+
+for(loc in unique(df_hc_qty$`Region Type`)) {
+  tmp <- df_hc_qty |> 
+   filter(`Region Type` == loc)
+  hc_loc <- hc_loc |> 
+    hc_add_series(
+      data = list_parse2(tibble(x = tmp$month_ts, y = tmp$quantity)),
+      name = loc,
+      type = "line"
+    )
+}
+
+hc_loc |> 
+  hc_legend(enabled = TRUE, align = "center", layout = "horizontal", verticalAlign = "bottom")
+
+```
+
+## 5.3 Quantity Sold per month per Surface area (all products combined)
+
+```{r }
+#| code-fold: true
+
+df_hc_qty <- df_monthly |> 
+    group_by(month, `Surface Area`) |> 
+    mutate(
+        quantity = sum(quantity)
+    ) |> 
+    ungroup() |> 
+    select(month, `Surface Area`, quantity) |> 
+    unique() |> 
+    mutate(month_ts = datetime_to_timestamp(month)) 
+
+hc_loc <- highchart(type = "stock") |> 
+  hc_title(text = "Monthly Quantity by locations' surface area") |> 
+  hc_xAxis(type = "datetime")
+
+for(loc in unique(df_hc_qty$`Surface Area`)) {
+  tmp <- df_hc_qty |> 
+   filter(`Surface Area` == loc)
+  hc_loc <- hc_loc |> 
+    hc_add_series(
+      data = list_parse2(tibble(x = tmp$month_ts, y = tmp$quantity)),
+      name = loc,
+      type = "line"
+    )
+}
+
+hc_loc |> 
+  hc_legend(enabled = TRUE, align = "center", layout = "horizontal", verticalAlign = "bottom")
+
+```
+
+## 5.3 Quantity Sold per month per Product Family
+
+```{r }
+#| code-fold: true
+
+df_hc_qty <- df_monthly |> 
+    group_by(month, `Product Family`) |> 
+    mutate(
+        quantity = sum(quantity)
+    ) |> 
+    ungroup() |> 
+    select(month, `Product Family`, quantity) |> 
+    unique() |> 
+    mutate(month_ts = datetime_to_timestamp(month)) 
+
+hc_loc <- highchart(type = "stock") |> 
+  hc_title(text = "Monthly Quantity by Product Family") |> 
+  hc_xAxis(type = "datetime")
+
+for(loc in unique(df_hc_qty$`Product Family`)) {
+  tmp <- df_hc_qty |> 
+   filter(`Product Family` == loc)
+  hc_loc <- hc_loc |> 
+    hc_add_series(
+      data = list_parse2(tibble(x = tmp$month_ts, y = tmp$quantity)),
+      name = loc,
+      type = "line"
+    )
+}
+
+hc_loc |> 
+  hc_legend(enabled = TRUE, align = "center", layout = "horizontal", verticalAlign = "bottom")
+
+```
+
+## 5.4 Promotion/Bundling effects on quantity sold
+```{r }
+#| code-fold: true
+
+# 1. Aggregate at month × SKU
+df_sku <- df_monthly %>%
+  group_by(month, SKU) %>%
+  summarise(
+    quantity  = sum(quantity),
+    avg_price = weighted.mean(unit_price),
+    .groups = "drop"
+  )
+
+# 2. Compute metrics per SKU
+results <- df_sku %>%
+  split(.$SKU) %>%                          # list of data.frames by SKU
+  map_dfr(function(dat){
+    # correlation test
+    ct   <- cor.test(dat$avg_price, dat$quantity)
+    # linear regression
+    lm1  <- lm(quantity ~ avg_price, data = dat)
+    # log‐log regression (only positive obs)
+    dat_pos <- filter(dat, quantity > 0, avg_price > 0)
+    elast <- if(nrow(dat_pos) > 1) {
+      coef(lm(log(quantity) ~ log(avg_price), data = dat_pos))["log(avg_price)"]
+    } else {
+      NA_real_
+    }
+    # assemble
+    tibble(
+      SKU           = dat$SKU[1],
+      Pearson_r     = as.numeric(ct$estimate),
+      p_value       = ct$p.value,
+      Linear_slope  = coef(lm1)["avg_price"],
+      Elasticity    = elast
+    )
+  })
+
+# 3. Inspect
+print(results)
+
+
+```
+
+Here’s the summary of how unit price relates to quantity for each SKU:
+
+- **Alpha:**
+  - Pearson r ≈ 0.253 (p ≈ 0.107) – a modest positive association, not statistically significant at 5%.
+  - Linear slope ≈ 2.61 (units sold per CAD) – suggests higher prices for Alpha months coincide with slightly higher quantities sold (perhaps signalling premium perception or bundle effects).
+  - Elasticity ≈ 3.04 – implies a 1 % increase in price is associated with ~3 % increase in quantity (counter-intuitive, but note significance is low and sample size small).
+
+- **Beta:**
+  - Pearson r ≈ 0.133 (p ≈ 0.358) – a weak positive correlation, not significant.
+  - Linear slope ≈ 0.26, elasticity ≈ 0.80 – effects are very small and statistically inconclusive.
+
+- **Gamma:**
+  - Pearson r ≈ 0.240 (p ≈ 0.093) – again a mild positive link, borderline non-significant.
+  - Linear slope ≈ 1.78, elasticity ≈ 0.83.
+
+I concluded that none of the SKUs exhibit a clear inverse price–quantity relationship; instead, I observed modest positive correlations, which I believe are driven by promotions, bundling, or other confounding factors rather than true demand elasticity.
+
+# 6. Key Takeaways from EDA
+
+- **Strong, consistent seasonality**
+  
+  -All series (by SKU, location, region, family) show a clear yearly peak in Nov-Dec and a trough in Jan–Feb.
+
+**SKU × Location heterogeneity**
+  
+  - Some locations consistently sell much more than others, even after accounting for size (surface area).
+  - Within a location, different SKUs have distinct volume profiles.
+
+**Weak price sensitivity**
+
+  - Across and within SKUs, price–quantity correlations were small (and in fact slightly positive), suggesting that price changes mainly reflect promotions or bundling rather than pure demand shifts.
+
+**Few true “outliers” or stock-out signals**
+
+Returns and bulk orders are rare (<2 % of transactions), so most monthly dips aren’t driven by extreme events.
+

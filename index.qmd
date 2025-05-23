@@ -1,0 +1,95 @@
+---
+title: "Demand Forecasting"
+---
+
+# Executive Summary
+
+This project showcases my technical and analytical skills through the completion of a comprehensive data science assessment provided by IVADO Labs. required performing exploratory data analysis (EDA) and developing predictive models to generate demand forecasts for use in an inventory management solution.
+
+Leveraging my primary proficiency in R, I conducted a detailed EDA and built an initial forecasting model using established time-series techniques. To demonstrate flexibility and broaden the solution’s applicability, I then implemented an alternative forecasting approach in Python, allowing for a direct comparison between two differents forecasting models with their pros and cons.
+
+## Key Objectives
+
+1.  Exploratory Data Analysis (EDA)
+2.  Data Preparation and Modeling
+3.  Deployment: Package the model in a cross-platform, reproducible environment using Docker
+
+## Highlights
+
+-   **Predictive Modeling**: Built a streamlined model pipeline using run and wicket data to predict performance metrics, emphasizing reproducibility and interpretability.
+-   **Reproducible Deployment**: Leveraged containerization to ensure cross-platform usability, along with CLI tools for local execution.
+
+This work demonstrates my ability to design end-to-end data solutions, leveraging my expertise in modeling and reproducible deployment. The methodology and results are detailed throughout this site to provide transparency and insight into my problem-solving approach.
+
+# Part I: EDA
+
+In the first part, we present an EDA of the data provided in 3 separates csv files (locations.csv, products.csv and transactions.csv)
+
+The key takeways from our EDA are : - Strong, consistent seasonality - SKU × Location heterogeneity - Weak price sensitivity - Few true “outliers” or stock-out signals
+
+For a detailed view of EDA, check the following page:
+
+-   [EDA](eda_R.html)
+
+# Part II: Data Preparation and Modeling
+
+## First Model in R
+
+Here are my intermediate data after first cleaning :
+
+-   [Intermediate data, in csv](https://docs.google.com/spreadsheets/d/1DeIHBTV5s94A6IjrO8mPDSUp21-Mqs5eyOJ5E6iYWzw/edit?usp=sharing){target="_blank"}
+
+You can show in details my code and explanation to went from raw data to that dataset [here](data_processing.html)
+
+You can also access the RScript directly on my GitHub repo - [data_processing.R](https://github.com/tsenegas/cricketML/blob/main/scripts/data_processing.R){target="_blank"}
+
+## Second Model in Python
+
+We've created a very basic and simple ML model to predict an average team's expected runs per over. Find the code and explanation [here](data_modelling.html)
+
+You can also access the RScript directly on my GitHub repo - [data_modelling.R](https://github.com/tsenegas/cricketML/blob/main/scripts/data_modelling.R){target="_blank"}
+
+# Part III: Deployment using docker
+
+You can download docker's image [here](https://drive.google.com/file/d/1aO6sgYZeBRZhDNS_JWJbTGVjdkE4dAZJ/view?usp=sharing){target="_blank"}
+
+Once downloaded, upload the image on your computer and run it - there are some pre requis : - You need to have docker.desktop (For Windows or Mac depending of your OS / Get Docker Engine on Linux) - On your cmd invit, navigate to the folder where you download the docker image and type : docker load -i cricket_model.tar - from your cmd invit, type docker run --rm -it cricket_model (you need to put -it, as you will need to select options)
+
+Running the docker's image, you will have two options :
+
+-   
+
+    1.  Run the demo
+
+-   
+
+    2.  Run on your datas
+
+For more explanation to see the process to create the image and to run it, you can take a look [there](deployment.html)
+
+# Set-up
+
+Here's the set-up to reproduce the same conditions
+
+-   Platform: x86_64-w64-mingw32/x64
+
+-   Running under: Windows 11 x64 (build 22631)
+
+-   Install R version 4.4.1 - [Install R 4.4.2](https://cran.r-project.org/bin/windows/base/)
+
+-   Install Python 3.12.16 - [Install Python 3.12.16](https://www.python.org/downloads/release/python-3120/)
+
+-   Install the latest Visual C++ Redistributable - [Windows Visual C++ Redistributable Version](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-microsoft-visual-c-redistributable-version)
+
+-   Install Positron IDE - [Positron](https://github.com/posit-dev/positron/releases)
+
+-   Docker Desktop for Windons (AMD64) - [Docker Desktop](https://www.docker.com/get-started/)
+
+You can also access the whole git for this project [here](https://github.com/tsenegas/demandForecasting) and install all the packages used using renv, see code below:
+
+```{r eval=FALSE}
+install.packages("renv")
+renv::restore()
+# check if everything is ok
+renv::status()
+```

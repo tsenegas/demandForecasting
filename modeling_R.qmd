@@ -1,0 +1,200 @@
+---
+title: "Demand Forecasting Model with R"
+author: "Th. Senegas"
+date: Sys.Date()
+toc: true
+format:
+  html:
+    html-math-method: katex
+    code-tools: true
+    self-contained: true
+execute:
+  warning: false
+---
+
+I chose to forecast at the SKU × Location level for several reasons:
+
+- **Operational relevance**
+
+    - Inventory and replenishment decisions are made at the store (location) and item (SKU) level. By forecasting precisely where and what to stock, we can minimize stock-outs and overstock.
+
+- **Captures local demand patterns**
+
+    - Each location has its own seasonality, promotions, and customer mix. Modeling at this granularity lets us pick up—for example—“Location A sells twice as much Alpha in November” even if the overall region peak is in December.
+
+-**Supports hierarchical consistency**
+
+    - A bottom-up SKU×Location forecast can be aggregated automatically to Region- or Family-level views. That means our high-level dashboards always roll up correctly from the detailed forecasts driving operations.
+
+- **Manages noise vs. scale**
+
+    - With only 3 SKUs and 10 locations (30 series total), it’s a manageable modeling effort. We get the benefit of detailed forecasts without an unmanageable number of models.
+
+- **Flexibility for enhancements**
+
+- We can easily swap in covariates (e.g. price, promotions, local events) per SKU×Location, or test different algorithms (ARIMA, ETS, ML) on each series—and still reconcile them back up.
+
+By forecasting at the SKU × Location level, we ensure the most actionable, accurate, and consistent demand plans—while retaining the ability to roll up to any higher aggregation needed for reporting or strategic planning.
+
+
+# 1. Data Prepation
+
+```{r }
+#| code-fold: true
+
+# 0. Packages
+library(tidymodels)   # tidymodels core (parsnip, recipes, workflows, tune, yardstick)
+library(rsample)      # for time_series_cv()
+library(timetk)
+library(dplyr)
+library(lubridate)
+
+
+df_monthly <- read_csv('./data/df_monthly.csv')
+
+df_monthly <- df_monthly %>%
+  select(month, `Location ID`, SKU, quantity) %>%
+  group_by(month, `Location ID`, SKU) %>%
+  summarise(quantity = sum(quantity), .groups = "drop") %>%
+  # convert to a yearmonth index
+  mutate(month = yearmonth(month)) %>%
+  as_tsibble(
+    key   = c(`Location ID`, SKU),
+    index = month
+  ) %>%
+  fill_gaps(quantity = 0L)
+
+library(prophet)
+
+# Example for one series (Alpha @ LOC_01)
+df1 <- df_monthly %>%
+  filter(SKU == "Alpha", `Location ID` == '0001') %>%
+  rename(ds = month, y = quantity)
+
+m1 <- prophet(df1, yearly.seasonality = TRUE)
+future1 <- make_future_dataframe(m1, periods = 6, freq = "month")
+fc1 <- predict(m1, future1)
+
+# 3) Define window lengths in days
+initial_days <- 24 * 30    # ≈720 days
+period_days  <- 6  * 30    # ≈180 days
+horizon_days <- 6  * 30    # ≈180 days
+
+# 4) Cross‐validation
+df_cv <- cross_validation(
+  m1,
+  initial  = initial_days,
+  period   = period_days,
+  horizon  = horizon_days,
+  units    = "days"
+)
+
+# 5) Compute performance metrics
+df_perf <- performance_metrics(df_cv)
+
+# 6) Inspect
+print(df_perf)
+
+
+df_monthly <- read_csv('./data/df_monthly.csv')
+
+df_monthly <- df_monthly %>%
+  select(month, `Location ID`, SKU, quantity) %>%
+  group_by(month, `Location ID`, SKU) %>%
+  summarise(quantity = sum(quantity), .groups = "drop") %>%
+  # convert to a yearmonth index
+  mutate(month = yearmonth(month)) %>%
+  as_tsibble(
+    key   = c(`Location ID`, SKU),
+    index = month
+  ) %>%
+  fill_gaps(quantity = 0L)
+
+
+
+# 1. Data prep: add time index + lags, drop NAs
+df_models <- df_monthly %>%
+  select(month, Location = `Location ID`, SKU, quantity) %>%
+  mutate(
+    # numeric time index (months since origin)
+    month_num = year(month) * 12 + month(month),
+  ) %>%
+  arrange(Location, SKU, month) %>%
+  group_by(Location, SKU) %>%
+  mutate(
+    lag1  = lag(quantity, 1),
+    lag12 = lag(quantity, 12)
+  ) %>%
+  ungroup() %>%
+  drop_na()   # lose first 12 rows per series
+
+# 2. Recipe: quantity ~ time + lags + location + SKU
+rec <- recipe(quantity ~ month_num + lag1 + lag12 + Location + SKU, df_models) %>%
+  # turn categorical predictors into dummies
+  step_dummy(all_nominal_predictors()) %>%
+  # center/scale numeric predictors
+  step_normalize(all_numeric_predictors())
+
+# 3. Time‐series CV: rolling origin
+cv_splits <- time_series_cv(
+  df_models,
+  date_var    = month,
+  initial     = 36,      # train on first 36 months
+  assess      = 6,       # test on next 6 months
+  skip        = 6,       # roll by 6 months
+  cumulative  = FALSE
+)
+
+# 4. Model specs
+lr_spec <- linear_reg() %>% 
+  set_engine("lm")
+
+rf_spec <- rand_forest(
+    mtry    = tune(), 
+    trees   = 500, 
+    min_n   = tune()
+  ) %>% 
+  set_engine("ranger") %>% 
+  set_mode("regression")
+
+xgb_spec <- boost_tree(
+    tree_depth = tune(),
+    learn_rate = tune(),
+    trees      = 1000
+  ) %>% 
+  set_engine("xgboost") %>% 
+  set_mode("regression")
+
+# 5. Workflows
+wf_lr  <- workflow() %>% add_model(lr_spec)  %>% add_recipe(rec)
+wf_rf  <- workflow() %>% add_model(rf_spec)  %>% add_recipe(rec)
+wf_xgb <- workflow() %>% add_model(xgb_spec) %>% add_recipe(rec)
+
+# 6. Tune on CV
+# define a small grid for tuning:
+rf_params  <- parameters(wf_rf)  %>% update(mtry = mtry(range = c(2, 10)))
+xgb_params <- parameters(wf_xgb) %>% 
+                update(tree_depth = tree_depth(range = c(3, 10))) %>%
+                update(learn_rate = learn_rate(range = c(0.01, 0.3)))
+
+set.seed(123)
+rf_res  <- tune_grid(wf_rf,  resamples = cv_splits, grid = 10, metrics = metric_set(rmse, mae, mape))
+xgb_res <- tune_grid(wf_xgb, resamples = cv_splits, grid = 10, metrics = metric_set(rmse, mae, mape))
+
+# LR has no tuning, just resample it
+lr_res <- fit_resamples(wf_lr, resamples = cv_splits, metrics = metric_set(rmse, mae, mape))
+
+# 7. Compare metrics
+collect_metrics(lr_res)  %>% mutate(model = "Linear Regression") ->
+  m_lr
+collect_metrics(rf_res)  %>% mutate(model = "Random Forest") ->
+  m_rf
+collect_metrics(xgb_res) %>% mutate(model = "XGBoost") ->
+  m_xgb
+
+bind_rows(m_lr, m_rf, m_xgb) %>%
+  select(model, .metric, mean, std_err) %>%
+  pivot_wider(names_from = .metric, values_from = c(mean, std_err))
+
+
+```
