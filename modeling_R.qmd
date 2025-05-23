@@ -14,28 +14,29 @@ execute:
 
 I chose to forecast at the SKU × Location level for several reasons:
 
-- **Operational relevance**
+-   **Operational relevance**
 
-    - Inventory and replenishment decisions are made at the store (location) and item (SKU) level. By forecasting precisely where and what to stock, we can minimize stock-outs and overstock.
+    -   Inventory and replenishment decisions are made at the store (location) and item (SKU) level. By forecasting precisely where and what to stock, we can minimize stock-outs and overstock.
 
-- **Captures local demand patterns**
+-   **Captures local demand patterns**
 
-    - Each location has its own seasonality, promotions, and customer mix. Modeling at this granularity lets us pick up—for example—“Location A sells twice as much Alpha in November” even if the overall region peak is in December.
+    -   Each location has its own seasonality, promotions, and customer mix. Modeling at this granularity lets us pick up—for example—“Location A sells twice as much Alpha in November” even if the overall region peak is in December.
 
--**Supports hierarchical consistency**
+\-**Supports hierarchical consistency**
 
-    - A bottom-up SKU×Location forecast can be aggregated automatically to Region- or Family-level views. That means our high-level dashboards always roll up correctly from the detailed forecasts driving operations.
+```         
+- A bottom-up SKU×Location forecast can be aggregated automatically to Region- or Family-level views. That means our high-level dashboards always roll up correctly from the detailed forecasts driving operations.
+```
 
-- **Manages noise vs. scale**
+-   **Manages noise vs. scale**
 
-    - With only 3 SKUs and 10 locations (30 series total), it’s a manageable modeling effort. We get the benefit of detailed forecasts without an unmanageable number of models.
+    -   With only 3 SKUs and 10 locations (30 series total), it’s a manageable modeling effort. We get the benefit of detailed forecasts without an unmanageable number of models.
 
-- **Flexibility for enhancements**
+-   **Flexibility for enhancements**
 
-- We can easily swap in covariates (e.g. price, promotions, local events) per SKU×Location, or test different algorithms (ARIMA, ETS, ML) on each series—and still reconcile them back up.
+-   We can easily swap in covariates (e.g. price, promotions, local events) per SKU×Location, or test different algorithms (ARIMA, ETS, ML) on each series—and still reconcile them back up.
 
 By forecasting at the SKU × Location level, we ensure the most actionable, accurate, and consistent demand plans—while retaining the ability to roll up to any higher aggregation needed for reporting or strategic planning.
-
 
 # 1. Data Prepation
 
@@ -43,8 +44,10 @@ By forecasting at the SKU × Location level, we ensure the most actionable, accu
 #| code-fold: true
 
 # 0. Packages
+library(tidyverse)
 library(tidymodels)   # tidymodels core (parsnip, recipes, workflows, tune, yardstick)
 library(rsample)      # for time_series_cv()
+library(tsibble)    
 library(timetk)
 library(dplyr)
 library(lubridate)
