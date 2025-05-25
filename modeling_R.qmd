@@ -20,13 +20,11 @@ I chose to forecast at the SKU × Location level for several reasons:
 
 -   **Captures local demand patterns**
 
-    -   Each location has its own seasonality, promotions, and customer mix. Modeling at this granularity lets us pick up—for example—“Location A sells twice as much Alpha in November” even if the overall region peak is in December.
+    -   Each location has its own seasonality, promotions, and customer mix.
 
-\-**Supports hierarchical consistency**
+-   **Supports hierarchical consistency**
 
-```         
-- A bottom-up SKU×Location forecast can be aggregated automatically to Region- or Family-level views. That means our high-level dashboards always roll up correctly from the detailed forecasts driving operations.
-```
+    -   A bottom-up SKU×Location forecast can be aggregated automatically to Region or Family level views. That means our high-level dashboards always roll up correctly from the detailed forecasts driving operations.
 
 -   **Manages noise vs. scale**
 
@@ -34,9 +32,9 @@ I chose to forecast at the SKU × Location level for several reasons:
 
 -   **Flexibility for enhancements**
 
--   We can easily swap in covariates (e.g. price, promotions, local events) per SKU×Location, or test different algorithms (ARIMA, ETS, ML) on each series—and still reconcile them back up.
+-   We can easily swap in covariates (e.g. price, promotions, local events) per SKU×Location, or test different algorithms (ARIMA, ETS, Prophet) on each series and still reconcile them back up.
 
-By forecasting at the SKU × Location level, we ensure the most actionable, accurate, and consistent demand plans—while retaining the ability to roll up to any higher aggregation needed for reporting or strategic planning.
+By forecasting at the SKU × Location level, we ensure the most actionable, accurate, and consistent demand plans, while retaining the ability to roll up to any higher aggregation needed for reporting or strategic planning.
 
 # 1. Data Prepation
 
@@ -45,159 +43,166 @@ By forecasting at the SKU × Location level, we ensure the most actionable, accu
 
 # 0. Packages
 library(tidyverse)
-library(tidymodels)   # tidymodels core (parsnip, recipes, workflows, tune, yardstick)
-library(rsample)      # for time_series_cv()
-library(tsibble)    
-library(timetk)
-library(dplyr)
 library(lubridate)
+library(modeltime)   # forecasting bridges tidymodels + prophet + ARIMA + ETS
+library(timetk)      # time‐series toolkit
+library(rsample)     # for resampling
+library(parsnip)     # model specification
+library(recipes)     # feature engineering
+library(workflows)   # bundling recipe + model
+library(yardstick)   # metrics
+library(tsibble) 
 
-
-df_monthly <- read_csv('./data/df_monthly.csv')
-
-df_monthly <- df_monthly %>%
-  select(month, `Location ID`, SKU, quantity) %>%
-  group_by(month, `Location ID`, SKU) %>%
-  summarise(quantity = sum(quantity), .groups = "drop") %>%
-  # convert to a yearmonth index
-  mutate(month = yearmonth(month)) %>%
-  as_tsibble(
-    key   = c(`Location ID`, SKU),
-    index = month
-  ) %>%
+# 1) Read & prep
+df_monthly <- read_csv("./data/df_monthly.csv") |>
+  select(month, Location = `Location ID`, SKU, quantity) |>
+  group_by(month, Location, SKU) |>
+  summarise(quantity = sum(quantity), .groups = "drop") |>
+  mutate(month = yearmonth(month)) |>
+  as_tsibble(key = c(Location, SKU), index = month) |>
   fill_gaps(quantity = 0L)
 
-library(prophet)
-
-# Example for one series (Alpha @ LOC_01)
-df1 <- df_monthly %>%
-  filter(SKU == "Alpha", `Location ID` == '0001') %>%
-  rename(ds = month, y = quantity)
-
-m1 <- prophet(df1, yearly.seasonality = TRUE)
-future1 <- make_future_dataframe(m1, periods = 6, freq = "month")
-fc1 <- predict(m1, future1)
-
-# 3) Define window lengths in days
-initial_days <- 24 * 30    # ≈720 days
-period_days  <- 6  * 30    # ≈180 days
-horizon_days <- 6  * 30    # ≈180 days
-
-# 4) Cross‐validation
-df_cv <- cross_validation(
-  m1,
-  initial  = initial_days,
-  period   = period_days,
-  horizon  = horizon_days,
-  units    = "days"
-)
-
-# 5) Compute performance metrics
-df_perf <- performance_metrics(df_cv)
-
-# 6) Inspect
-print(df_perf)
-
-
-df_monthly <- read_csv('./data/df_monthly.csv')
-
-df_monthly <- df_monthly %>%
-  select(month, `Location ID`, SKU, quantity) %>%
-  group_by(month, `Location ID`, SKU) %>%
-  summarise(quantity = sum(quantity), .groups = "drop") %>%
-  # convert to a yearmonth index
-  mutate(month = yearmonth(month)) %>%
-  as_tsibble(
-    key   = c(`Location ID`, SKU),
-    index = month
-  ) %>%
-  fill_gaps(quantity = 0L)
-
-
-
-# 1. Data prep: add time index + lags, drop NAs
-df_models <- df_monthly %>%
-  select(month, Location = `Location ID`, SKU, quantity) %>%
+df <- df_monthly |>
+  select(month, Location, SKU, quantity) |>
   mutate(
-    # numeric time index (months since origin)
-    month_num = year(month) * 12 + month(month),
-  ) %>%
-  arrange(Location, SKU, month) %>%
-  group_by(Location, SKU) %>%
-  mutate(
-    lag1  = lag(quantity, 1),
-    lag12 = lag(quantity, 12)
-  ) %>%
-  ungroup() %>%
-  drop_na()   # lose first 12 rows per series
+    ds = yearmonth(month) |>  as.Date(),  # convert to Date at month‐start
+    y  = quantity
+  ) |>
+  select(ds, y, Location, SKU)
 
-# 2. Recipe: quantity ~ time + lags + location + SKU
-rec <- recipe(quantity ~ month_num + lag1 + lag12 + Location + SKU, df_models) %>%
-  # turn categorical predictors into dummies
-  step_dummy(all_nominal_predictors()) %>%
-  # center/scale numeric predictors
-  step_normalize(all_numeric_predictors())
-
-# 3. Time‐series CV: rolling origin
-cv_splits <- time_series_cv(
-  df_models,
-  date_var    = month,
-  initial     = 36,      # train on first 36 months
-  assess      = 6,       # test on next 6 months
-  skip        = 6,       # roll by 6 months
-  cumulative  = FALSE
-)
-
-# 4. Model specs
-lr_spec <- linear_reg() %>% 
-  set_engine("lm")
-
-rf_spec <- rand_forest(
-    mtry    = tune(), 
-    trees   = 500, 
-    min_n   = tune()
-  ) %>% 
-  set_engine("ranger") %>% 
-  set_mode("regression")
-
-xgb_spec <- boost_tree(
-    tree_depth = tune(),
-    learn_rate = tune(),
-    trees      = 1000
-  ) %>% 
-  set_engine("xgboost") %>% 
-  set_mode("regression")
-
-# 5. Workflows
-wf_lr  <- workflow() %>% add_model(lr_spec)  %>% add_recipe(rec)
-wf_rf  <- workflow() %>% add_model(rf_spec)  %>% add_recipe(rec)
-wf_xgb <- workflow() %>% add_model(xgb_spec) %>% add_recipe(rec)
-
-# 6. Tune on CV
-# define a small grid for tuning:
-rf_params  <- parameters(wf_rf)  %>% update(mtry = mtry(range = c(2, 10)))
-xgb_params <- parameters(wf_xgb) %>% 
-                update(tree_depth = tree_depth(range = c(3, 10))) %>%
-                update(learn_rate = learn_rate(range = c(0.01, 0.3)))
-
-set.seed(123)
-rf_res  <- tune_grid(wf_rf,  resamples = cv_splits, grid = 10, metrics = metric_set(rmse, mae, mape))
-xgb_res <- tune_grid(wf_xgb, resamples = cv_splits, grid = 10, metrics = metric_set(rmse, mae, mape))
-
-# LR has no tuning, just resample it
-lr_res <- fit_resamples(wf_lr, resamples = cv_splits, metrics = metric_set(rmse, mae, mape))
-
-# 7. Compare metrics
-collect_metrics(lr_res)  %>% mutate(model = "Linear Regression") ->
-  m_lr
-collect_metrics(rf_res)  %>% mutate(model = "Random Forest") ->
-  m_rf
-collect_metrics(xgb_res) %>% mutate(model = "XGBoost") ->
-  m_xgb
-
-bind_rows(m_lr, m_rf, m_xgb) %>%
-  select(model, .metric, mean, std_err) %>%
-  pivot_wider(names_from = .metric, values_from = c(mean, std_err))
-
+# 2) Nest by series
+nested_tbl <- df |> 
+  group_by(Location, SKU) |> 
+  nest() |> 
+  ungroup()
 
 ```
+
+# 2. Model Training & Evaluation
+```{r}
+#| code-fold: true
+
+set.seed(123)
+
+# 3) Define a function to build a modeltime table per series
+make_models <- function(data_tbl) {
+
+  # a. Split train / test (last 6 months hold-out)
+  splits <- initial_time_split(data_tbl, prop = (nrow(data_tbl) - 6) / nrow(data_tbl))
+
+  # b. Recipe (no extra features right now)
+  rec <- recipe(y ~ ds, data = training(splits))
+  
+  # c. Model specs
+  arima_spec <- arima_reg()      |>  set_engine("auto_arima")
+  ets_spec   <- exp_smoothing()  |>  set_engine("ets")
+  prop_spec  <- prophet_reg()    |>  set_engine("prophet")
+
+  # d. Workflows
+  wf_arima <- workflow() |>  add_model(arima_spec) |>  add_recipe(rec)
+  wf_ets   <- workflow() |>  add_model(ets_spec)   |>  add_recipe(rec)
+  wf_prop  <- workflow() |>  add_model(prop_spec)  |>  add_recipe(rec)
+
+  # e. Modeltime table
+  modeltime_table(
+    arima = fit(wf_arima,  data = training(splits)),
+    ets   = fit(wf_ets,    data = training(splits)),
+    prop  = fit(wf_prop,   data = training(splits))
+  ) |> 
+    # f. Calibrate (generate forecasts on the test set)
+    modeltime_calibrate(new_data = testing(splits)) |> 
+    # g. Compute accuracy metrics
+    modeltime_accuracy() |> 
+    # h. Also embed the calibration object for later forecasting
+    left_join(
+      modeltime_table(
+        arima = fit(wf_arima,  data = training(splits)),
+        ets   = fit(wf_ets,    data = training(splits)),
+        prop  = fit(wf_prop,   data = training(splits))
+      ) |>  modeltime_calibrate(new_data = testing(splits)) |>  mutate(.model_desc = names(.model_id)),
+      by = ".model_id"
+    )
+}
+
+# 4) Apply to each series
+results_tbl <- nested_tbl |> 
+  mutate(
+    metrics = map(data, make_models)
+  ) |> 
+  select(Location, SKU, metrics) |> 
+  unnest(metrics)
+
+ best_models <- results_tbl |> 
+  group_by(Location, SKU) |> 
+  slice_min(rmse, n = 1) |> 
+  select(Location, SKU, .model_desc, mae, rmse, mase) |> 
+  distinct(Location, SKU, .keep_all = TRUE)
+
+# 5) Inspect accuracy
+results_tbl |> 
+  select(Location, SKU, .model_desc, rmse, mae, mape) |> 
+  arrange(Location, SKU, rmse) |> 
+  print(n = Inf)
+```
+
+# 3. Final Forecasting
+```{r}
+#| code-fold: true
+
+# 6) Re-nest for final forecasting
+forecast_tbl <- nested_tbl |> 
+  left_join(
+    results_tbl |> 
+      group_by(Location, SKU) |> 
+      slice_min(rmse, n = 1) |> 
+      select(Location, SKU, .model_id),
+    by = c("Location","SKU")
+  ) |> 
+  distinct(Location, SKU, .keep_all = TRUE) |> 
+  mutate(
+    # 1) build a 3-row modeltime_table for each series, and tag rows with .model_id = 1,2,3
+    model_tbl = map(data, function(df) {
+      rec      <- recipe(y ~ ds, data = df)
+      wf_arima <- workflow() |> 
+                    add_model(arima_reg() |>  set_engine("auto_arima")) |> 
+                    add_recipe(rec)
+      wf_ets   <- workflow() |> 
+                    add_model(exp_smoothing() |>  set_engine("ets")) |> 
+                    add_recipe(rec)
+      wf_prop  <- workflow() |> 
+                    add_model(prophet_reg() |>  set_engine("prophet")) |> 
+                    add_recipe(rec)
+
+      modeltime_table(
+        arima = fit(wf_arima, df),
+        ets   = fit(wf_ets,   df),
+        prop  = fit(wf_prop,  df)
+      ) #|> 
+      #rowid_to_column(var = ".model_id")
+    }),
+
+    # 2) pick the chosen row by .model_id
+    model = map2(model_tbl, .model_id, ~ slice(.x, .y)),
+
+    # 3) refit that model on _all_ the data, then forecast 6 months out
+    final_model = map2(model, data, ~ modeltime_refit(.x, data = .y))#,
+    #forecast    = map(final_model,     ~ modeltime_forecast(.x, h = "6 months"))
+  )
+
+forecast_tbl2 <- forecast_tbl |> 
+  mutate(
+    # Re-calibrate each final_model on its own data
+    calib_full = map2(final_model, data, ~ modeltime_calibrate(.x, new_data = .y)),
+
+    # Now you *can* use `h = "6 months"`, but you MUST also give it `actual_data`
+    forecast = map2(
+      calib_full, data,
+      ~ modeltime_forecast(.x,
+          h           = "6 months",
+          actual_data = .y
+      )
+    )
+  )
+```
+
+# 4. Takeaways & Limitations
