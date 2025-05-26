@@ -81,6 +81,7 @@ nested_tbl <- df |>
 # 2. Model Training & Evaluation
 ```{r}
 #| code-fold: true
+#| fig-column: page-right
 
 set.seed(123)
 
@@ -132,17 +133,29 @@ results_tbl <- nested_tbl |>
   select(Location, SKU, metrics) |> 
   unnest(metrics)
 
- best_models <- results_tbl |> 
+# 5) Inspect accuracy
+best_models <- results_tbl |> 
   group_by(Location, SKU) |> 
   slice_min(rmse, n = 1) |> 
   select(Location, SKU, .model_desc, mae, rmse, mase) |> 
-  distinct(Location, SKU, .keep_all = TRUE)
+  distinct(Location, SKU, .keep_all = TRUE) 
 
-# 5) Inspect accuracy
-results_tbl |> 
-  select(Location, SKU, .model_desc, rmse, mae, mape) |> 
-  arrange(Location, SKU, rmse) |> 
-  print(n = Inf)
+avg_month <- df_monthly |>
+  as.data.frame() |>
+  group_by(Location, SKU) |>
+  mutate(
+    avg_month = mean(quantity)
+  ) |>
+  select(Location, SKU, avg_month) |>
+  unique()
+
+best_models <- best_models |>
+  left_join(
+    avg_month, by = c('Location', 'SKU')
+  )
+
+DT::datatable(best_models)
+
 ```
 
 # 3. Final Forecasting
@@ -204,5 +217,931 @@ forecast_tbl2 <- forecast_tbl |>
     )
   )
 ```
+
+::: {.panel-tabset}
+
+## Location 0001
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+
+library(xts)
+library(dygraphs)
+
+alpha_1 = forecast_tbl2 |> 
+  subset(Location == '0001' & SKU =='Alpha')
+ 
+alpha_1 = alpha_1$forecast |>
+  as.data.frame()
+
+alpha_1_xts <- xts(
+  x = alpha_1[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_1$.index
+)
+
+dygraph(alpha_1_xts, main = "Forecast with 95% CI - Alpha*0001") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_1 = forecast_tbl2 |> 
+  subset(Location == '0001' & SKU =='Beta')
+ 
+beta_1 = beta_1$forecast |>
+  as.data.frame()
+
+beta_1_xts <- xts(
+  x = beta_1[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_1$.index
+)
+
+dygraph(beta_1_xts, main = "Forecast with 95% CI - Beta*0001") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_1 = forecast_tbl2 |> 
+  subset(Location == '0001' & SKU =='Gamma')
+ 
+gamma_1 = gamma_1$forecast |>
+  as.data.frame()
+
+gamma_1_xts <- xts(
+  x = gamma_1[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_1$.index
+)
+
+dygraph(gamma_1_xts, main = "Forecast with 95% CI - Gamma*0001") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+## Location 0002
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+alpha_2 = forecast_tbl2 |> 
+  subset(Location == '0002' & SKU =='Alpha')
+ 
+alpha_2 = alpha_2$forecast |>
+  as.data.frame()
+
+alpha_2_xts <- xts(
+  x = alpha_2[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_2$.index
+)
+
+dygraph(alpha_2_xts, main = "Forecast with 95% CI - Alpha*0002") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector() 
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_2 = forecast_tbl2 |> 
+  subset(Location == '0002' & SKU =='Beta')
+ 
+beta_2 = beta_2$forecast |>
+  as.data.frame()
+
+beta_2_xts <- xts(
+  x = beta_2[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_2$.index
+)
+
+dygraph(beta_2_xts, main = "Forecast with 95% CI - Beta*0002") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_2 = forecast_tbl2 |> 
+  subset(Location == '0002' & SKU =='Gamma')
+ 
+gamma_2 = gamma_2$forecast |>
+  as.data.frame()
+
+gamma_2_xts <- xts(
+  x = gamma_2[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_2$.index
+)
+
+dygraph(gamma_2_xts, main = "Forecast with 95% CI - Gamma*0002") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+## Location 0003
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+alpha_3 = forecast_tbl2 |> 
+  subset(Location == '0003' & SKU =='Alpha')
+ 
+alpha_3 = alpha_3$forecast |>
+  as.data.frame()
+
+alpha_3_xts <- xts(
+  x = alpha_3[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_3$.index
+)
+
+dygraph(alpha_3_xts, main = "Forecast with 95% CI - Alpha*0003") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector() 
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_3 = forecast_tbl2 |> 
+  subset(Location == '0003' & SKU =='Beta')
+ 
+beta_3 = beta_3$forecast |>
+  as.data.frame()
+
+beta_3_xts <- xts(
+  x = beta_3[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_3$.index
+)
+
+dygraph(beta_3_xts, main = "Forecast with 95% CI - Beta*0003") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_3 = forecast_tbl2 |> 
+  subset(Location == '0003' & SKU =='Gamma')
+ 
+gamma_3 = gamma_3$forecast |>
+  as.data.frame()
+
+gamma_3_xts <- xts(
+  x = gamma_3[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_3$.index
+)
+
+dygraph(gamma_3_xts, main = "Forecast with 95% CI - Gamma*0003") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+## Location 0004
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+alpha_4 = forecast_tbl2 |> 
+  subset(Location == '0004' & SKU =='Alpha')
+ 
+alpha_4 = alpha_4$forecast |>
+  as.data.frame()
+
+alpha_4_xts <- xts(
+  x = alpha_4[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_4$.index
+)
+
+dygraph(alpha_4_xts, main = "Forecast with 95% CI - Alpha*0004") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector() 
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_4 = forecast_tbl2 |> 
+  subset(Location == '0004' & SKU =='Beta')
+ 
+beta_4 = beta_4$forecast |>
+  as.data.frame()
+
+beta_4_xts <- xts(
+  x = beta_4[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_4$.index
+)
+
+dygraph(beta_4_xts, main = "Forecast with 95% CI - Beta*0004") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_4 = forecast_tbl2 |> 
+  subset(Location == '0004' & SKU =='Gamma')
+ 
+gamma_4 = gamma_4$forecast |>
+  as.data.frame()
+
+gamma_4_xts <- xts(
+  x = gamma_4[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_4$.index
+)
+
+dygraph(gamma_4_xts, main = "Forecast with 95% CI - Gamma*0004") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+## Location 0005
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+alpha_5 = forecast_tbl2 |> 
+  subset(Location == '0005' & SKU =='Alpha')
+ 
+alpha_5 = alpha_5$forecast |>
+  as.data.frame()
+
+alpha_5_xts <- xts(
+  x = alpha_5[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_5$.index
+)
+
+dygraph(alpha_5_xts, main = "Forecast with 95% CI - Alpha*0005") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector() 
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_5 = forecast_tbl2 |> 
+  subset(Location == '0005' & SKU =='Beta')
+ 
+beta_5 = beta_5$forecast |>
+  as.data.frame()
+
+beta_5_xts <- xts(
+  x = beta_5[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_5$.index
+)
+
+dygraph(beta_5_xts, main = "Forecast with 95% CI - Beta*0005") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_5 = forecast_tbl2 |> 
+  subset(Location == '0005' & SKU =='Gamma')
+ 
+gamma_5 = gamma_5$forecast |>
+  as.data.frame()
+
+gamma_5_xts <- xts(
+  x = gamma_5[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_5$.index
+)
+
+dygraph(gamma_5_xts, main = "Forecast with 95% CI - Gamma*0005") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+## Location 0006
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+alpha_6 = forecast_tbl2 |> 
+  subset(Location == '0006' & SKU =='Alpha')
+ 
+alpha_6 = alpha_6$forecast |>
+  as.data.frame()
+
+alpha_6_xts <- xts(
+  x = alpha_6[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_6$.index
+)
+
+dygraph(alpha_6_xts, main = "Forecast with 95% CI - Alpha*0006") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector() 
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_6 = forecast_tbl2 |> 
+  subset(Location == '0006' & SKU =='Beta')
+ 
+beta_6 = beta_6$forecast |>
+  as.data.frame()
+
+beta_6_xts <- xts(
+  x = beta_6[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_6$.index
+)
+
+dygraph(beta_6_xts, main = "Forecast with 95% CI - Beta*0006") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_6 = forecast_tbl2 |> 
+  subset(Location == '0006' & SKU =='Gamma')
+ 
+gamma_6 = gamma_6$forecast |>
+  as.data.frame()
+
+gamma_6_xts <- xts(
+  x = gamma_6[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_6$.index
+)
+
+dygraph(gamma_6_xts, main = "Forecast with 95% CI - Gamma*0006") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+## Location 0007
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+alpha_7 = forecast_tbl2 |> 
+  subset(Location == '0007' & SKU =='Alpha')
+ 
+alpha_7 = alpha_7$forecast |>
+  as.data.frame()
+
+alpha_7_xts <- xts(
+  x = alpha_7[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_7$.index
+)
+
+dygraph(alpha_7_xts, main = "Forecast with 95% CI - Alpha*0007") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector() 
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_7 = forecast_tbl2 |> 
+  subset(Location == '0007' & SKU =='Beta')
+ 
+beta_7 = beta_7$forecast |>
+  as.data.frame()
+
+beta_7_xts <- xts(
+  x = beta_7[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_7$.index
+)
+
+dygraph(beta_7_xts, main = "Forecast with 95% CI - Beta*0007") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_7 = forecast_tbl2 |> 
+  subset(Location == '0007' & SKU =='Gamma')
+ 
+gamma_7 = gamma_7$forecast |>
+  as.data.frame()
+
+gamma_7_xts <- xts(
+  x = gamma_7[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_7$.index
+)
+
+dygraph(gamma_7_xts, main = "Forecast with 95% CI - Gamma*0007") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+## Location 0008
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+alpha_8 = forecast_tbl2 |> 
+  subset(Location == '0008' & SKU =='Alpha')
+ 
+alpha_8 = alpha_8$forecast |>
+  as.data.frame()
+
+alpha_8_xts <- xts(
+  x = alpha_8[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_8$.index
+)
+
+dygraph(alpha_8_xts, main = "Forecast with 95% CI - Alpha*0008") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector() 
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_8 = forecast_tbl2 |> 
+  subset(Location == '0008' & SKU =='Beta')
+ 
+beta_8 = beta_8$forecast |>
+  as.data.frame()
+
+beta_8_xts <- xts(
+  x = beta_8[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_8$.index
+)
+
+dygraph(beta_8_xts, main = "Forecast with 95% CI - Beta*0008") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_8 = forecast_tbl2 |> 
+  subset(Location == '0008' & SKU =='Gamma')
+ 
+gamma_8 = gamma_8$forecast |>
+  as.data.frame()
+
+gamma_8_xts <- xts(
+  x = gamma_8[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_8$.index
+)
+
+dygraph(gamma_8_xts, main = "Forecast with 95% CI - Gamma*0008") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+## Location 0009
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+alpha_9 = forecast_tbl2 |> 
+  subset(Location == '0009' & SKU =='Alpha')
+ 
+alpha_9 = alpha_9$forecast |>
+  as.data.frame()
+
+alpha_9_xts <- xts(
+  x = alpha_9[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_9$.index
+)
+
+dygraph(alpha_9_xts, main = "Forecast with 95% CI - Alpha*0009") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector() 
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_9 = forecast_tbl2 |> 
+  subset(Location == '0009' & SKU =='Beta')
+ 
+beta_9 = beta_9$forecast |>
+  as.data.frame()
+
+beta_9_xts <- xts(
+  x = beta_9[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_9$.index
+)
+
+dygraph(beta_9_xts, main = "Forecast with 95% CI - Beta*0009") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_9 = forecast_tbl2 |> 
+  subset(Location == '0009' & SKU =='Gamma')
+ 
+gamma_9 = gamma_9$forecast |>
+  as.data.frame()
+
+gamma_9_xts <- xts(
+  x = gamma_9[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_9$.index
+)
+
+dygraph(gamma_9_xts, main = "Forecast with 95% CI - Gamma*0009") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+## Location 0010
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+alpha_10 = forecast_tbl2 |> 
+  subset(Location == '0010' & SKU =='Alpha')
+ 
+alpha_10 = alpha_10$forecast |>
+  as.data.frame()
+
+alpha_10_xts <- xts(
+  x = alpha_10[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = alpha_10$.index
+)
+
+dygraph(alpha_10_xts, main = "Forecast with 95% CI - Alpha*0010") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector() 
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+beta_10 = forecast_tbl2 |> 
+  subset(Location == '0010' & SKU =='Beta')
+ 
+beta_10 = beta_10$forecast |>
+  as.data.frame()
+
+beta_10_xts <- xts(
+  x = beta_10[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = beta_10$.index
+)
+
+dygraph(beta_10_xts, main = "Forecast with 95% CI - Beta*0010") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+```{r}
+#| code-fold: true
+#| fig-column: page-right
+
+library(xts)
+library(dygraphs)
+
+gamma_10 = forecast_tbl2 |> 
+  subset(Location == '0010' & SKU =='Gamma')
+ 
+gamma_10 = gamma_10$forecast |>
+  as.data.frame()
+
+gamma_10_xts <- xts(
+  x = gamma_10[, c(".value", ".conf_lo", ".conf_hi")],
+  order.by = gamma_10$.index
+)
+
+dygraph(gamma_10_xts, main = "Forecast with 95% CI - Gamma*0010") |>
+  dySeries(c(".conf_lo",".value", ".conf_hi")) |>
+  dyOptions(
+    drawPoints = TRUE,
+    pointSize   = 2,
+    strokeWidth = 2
+  ) |>
+  dyAxis("y", label = "Demand") |>
+  dyRangeSelector()   
+
+```
+
+:::
+
 
 # 4. Takeaways & Limitations
