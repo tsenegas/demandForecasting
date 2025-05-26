@@ -29,7 +29,7 @@ Because we currently lack the inventory feed needed to reconstruct implied deman
 ```{python}
 import pandas as pd
 
-# 1. Load your monthly SKU×Location series
+# 1. Load monthly data savec previously
 df = pd.read_csv('./data/df_monthly.csv', parse_dates=['month'])
 
 df = df.rename(columns={
@@ -57,7 +57,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 import numpy as np
 import pandas as pd
 
-# We'll store per-series results here
 results = []
 models  = {}
 
@@ -113,7 +112,7 @@ for (pf, rt), grp in df_agg.groupby(['product_family', 'region_type']):
         valid_sets=[valid_data],
         callbacks=[
             lgb.early_stopping(stopping_rounds=50),
-            lgb.log_evaluation(period=0)      # silence the built-in logging
+            lgb.log_evaluation(period=0)  
         ]
     )
     
@@ -134,7 +133,7 @@ for (pf, rt), grp in df_agg.groupby(['product_family', 'region_type']):
     })
     models[(pf, rt)] = model
 
-# Convert results to a DataFrame for easy viewing
+# Convert results to a df
 results_df = pd.DataFrame(results)
 print(results_df[['product_family','region_type','test_rmse','test_mae','avg_qty']])
 

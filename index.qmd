@@ -119,7 +119,8 @@ The primary goal of this assessment was to develop a demand-forecasting engine t
     3. **Forecast implied demand** with the same ML pipeline (e.g., LightGBM on engineered features), yielding more accurate predictions of true need.  
     4. **Drive inventory policies** directly from these implied demand forecasts that can be adjusted by experts who can have information that the model doesn't take into account (promotional campaign, new products, macro-economics shock, etc.)
 
-By closing the loop between inventory data and sales forecasting, we create a feedback-driven, demand-informed replenishment process, delivering the most effective inventory management solution.
+
+By closing the loop between inventory data and sales forecasting, we could create a feedback-driven, demand-informed replenishment process, delivering the most effective inventory management solution.
 
 
 # Set-up

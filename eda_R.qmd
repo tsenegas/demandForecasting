@@ -104,7 +104,7 @@ In view of the number of observations (transactions) available and the objective
 df_monthly <- df |> 
     # Remove bulk order
     subset(Quantity <= 10) |> 
-    # Create week value and unit price
+    # Create month index and unit price
     mutate(
         month = floor_date(as.Date(Date), unit = "month"),
         unit_price = `Value ($)` / Quantity
@@ -280,7 +280,7 @@ df_sku <- df_monthly %>%
 
 # 2. Compute metrics per SKU
 results <- df_sku %>%
-  split(.$SKU) %>%                          # list of data.frames by SKU
+  split(.$SKU) %>%                      
   map_dfr(function(dat){
     # correlation test
     ct   <- cor.test(dat$avg_price, dat$quantity)

@@ -65,7 +65,7 @@ df_monthly <- read_csv("./data/df_monthly.csv") |>
 df <- df_monthly |>
   select(month, Location, SKU, quantity) |>
   mutate(
-    ds = yearmonth(month) |>  as.Date(),  # convert to Date at month‐start
+    ds = yearmonth(month) |>  as.Date(),
     y  = quantity
   ) |>
   select(ds, y, Location, SKU)
@@ -88,10 +88,10 @@ set.seed(123)
 # 3) Define a function to build a modeltime table per series
 make_models <- function(data_tbl) {
 
-  # a. Split train / test (last 6 months hold-out)
+  # a. Split train / test 
   splits <- initial_time_split(data_tbl, prop = (nrow(data_tbl) - 6) / nrow(data_tbl))
 
-  # b. Recipe (no extra features right now)
+  # b. Recipe 
   rec <- recipe(y ~ ds, data = training(splits))
   
   # c. Model specs
@@ -133,7 +133,7 @@ results_tbl <- nested_tbl |>
   select(Location, SKU, metrics) |> 
   unnest(metrics)
 
-# 5) Inspect accuracy
+# 5) Inspect metrics
 best_models <- results_tbl |> 
   group_by(Location, SKU) |> 
   slice_min(rmse, n = 1) |> 
@@ -174,7 +174,7 @@ forecast_tbl <- nested_tbl |>
   ) |> 
   distinct(Location, SKU, .keep_all = TRUE) |> 
   mutate(
-    # 1) build a 3-row modeltime_table for each series, and tag rows with .model_id = 1,2,3
+    # 1) build a 3-row modeltime_table for each series
     model_tbl = map(data, function(df) {
       rec      <- recipe(y ~ ds, data = df)
       wf_arima <- workflow() |> 
@@ -191,8 +191,7 @@ forecast_tbl <- nested_tbl |>
         arima = fit(wf_arima, df),
         ets   = fit(wf_ets,   df),
         prop  = fit(wf_prop,  df)
-      ) #|> 
-      #rowid_to_column(var = ".model_id")
+      ) 
     }),
 
     # 2) pick the chosen row by .model_id
@@ -200,15 +199,13 @@ forecast_tbl <- nested_tbl |>
 
     # 3) refit that model on _all_ the data, then forecast 6 months out
     final_model = map2(model, data, ~ modeltime_refit(.x, data = .y))#,
-    #forecast    = map(final_model,     ~ modeltime_forecast(.x, h = "6 months"))
+  
   )
 
 forecast_tbl2 <- forecast_tbl |> 
   mutate(
     # Re-calibrate each final_model on its own data
     calib_full = map2(final_model, data, ~ modeltime_calibrate(.x, new_data = .y)),
-
-    # Now you *can* use `h = "6 months"`, but you MUST also give it `actual_data`
     forecast = map2(
       calib_full, data,
       ~ modeltime_forecast(.x,

@@ -4976,7 +4976,7 @@ vertical-align: -.125em;
 <li><strong>Drive inventory policies</strong> directly from these implied demand forecasts that can be adjusted by experts who can have information that the model doesn’t take into account (promotional campaign, new products, macro-economics shock, etc.)</li>
 </ol></li>
 </ul>
-<p>By closing the loop between inventory data and sales forecasting, we create a feedback-driven, demand-informed replenishment process, delivering the most effective inventory management solution.</p>
+<p>By closing the loop between inventory data and sales forecasting, we could create a feedback-driven, demand-informed replenishment process, delivering the most effective inventory management solution.</p>
 </section>
 <section id="set-up" class="level1">
 <h1>Set-up</h1>
@@ -5594,31 +5594,32 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a><span class="ss">    3. </span>**Forecast implied demand** with the same ML pipeline (e.g., LightGBM on engineered features), yielding more accurate predictions of true need.  </span>
 <span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a><span class="ss">    4. </span>**Drive inventory policies** directly from these implied demand forecasts that can be adjusted by experts who can have information that the model doesn&#39;t take into account (promotional campaign, new products, macro-economics shock, etc.)</span>
 <span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a>By closing the loop between inventory data and sales forecasting, we create a feedback-driven, demand-informed replenishment process, delivering the most effective inventory management solution.</span>
-<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a>By closing the loop between inventory data and sales forecasting, we could create a feedback-driven, demand-informed replenishment process, delivering the most effective inventory management solution.</span>
 <span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a><span class="fu"># Set-up</span></span>
-<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a>Here&#39;s the set-up to reproduce the same conditions</span>
-<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Platform: x86_64-w64-mingw32/x64</span>
-<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Running under: Windows 11 x64 (build 22631)</span>
-<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Install R version 4.4.1 - <span class="co">[</span><span class="ot">Install R 4.4.2</span><span class="co">](https://cran.r-project.org/bin/windows/base/)</span></span>
-<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Install Python 3.13.1 - <span class="co">[</span><span class="ot">Install Python 3.12.16</span><span class="co">](https://www.python.org/downloads/release/python-3131/)</span></span>
-<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Install Positron IDE - <span class="co">[</span><span class="ot">Positron</span><span class="co">](https://github.com/posit-dev/positron/releases)</span></span>
-<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a>You can also access the whole git for this project <span class="co">[</span><span class="ot">here</span><span class="co">](https://github.com/tsenegas/demandForecasting)</span> and install all the R packages used using renv, see code below:</span>
-<span id="cb2-140"><a href="#cb2-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a><span class="in">```{r eval=FALSE}</span></span>
-<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a><span class="in">install.packages(&quot;renv&quot;)</span></span>
-<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a><span class="in">renv::restore()</span></span>
-<span id="cb2-144"><a href="#cb2-144" aria-hidden="true" tabindex="-1"></a><span class="in"># check if everything is ok</span></span>
-<span id="cb2-145"><a href="#cb2-145" aria-hidden="true" tabindex="-1"></a><span class="in">renv::status()</span></span>
-<span id="cb2-146"><a href="#cb2-146" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></pre></div>
+<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a><span class="fu"># Set-up</span></span>
+<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a>Here&#39;s the set-up to reproduce the same conditions</span>
+<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Platform: x86_64-w64-mingw32/x64</span>
+<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Running under: Windows 11 x64 (build 22631)</span>
+<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Install R version 4.4.1 - <span class="co">[</span><span class="ot">Install R 4.4.2</span><span class="co">](https://cran.r-project.org/bin/windows/base/)</span></span>
+<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Install Python 3.13.1 - <span class="co">[</span><span class="ot">Install Python 3.12.16</span><span class="co">](https://www.python.org/downloads/release/python-3131/)</span></span>
+<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Install Positron IDE - <span class="co">[</span><span class="ot">Positron</span><span class="co">](https://github.com/posit-dev/positron/releases)</span></span>
+<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-140"><a href="#cb2-140" aria-hidden="true" tabindex="-1"></a>You can also access the whole git for this project <span class="co">[</span><span class="ot">here</span><span class="co">](https://github.com/tsenegas/demandForecasting)</span> and install all the R packages used using renv, see code below:</span>
+<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a><span class="in">```{r eval=FALSE}</span></span>
+<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a><span class="in">install.packages(&quot;renv&quot;)</span></span>
+<span id="cb2-144"><a href="#cb2-144" aria-hidden="true" tabindex="-1"></a><span class="in">renv::restore()</span></span>
+<span id="cb2-145"><a href="#cb2-145" aria-hidden="true" tabindex="-1"></a><span class="in"># check if everything is ok</span></span>
+<span id="cb2-146"><a href="#cb2-146" aria-hidden="true" tabindex="-1"></a><span class="in">renv::status()</span></span>
+<span id="cb2-147"><a href="#cb2-147" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal><i class="bi"></i></button></pre></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 
