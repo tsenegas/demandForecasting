@@ -1,7 +1,7 @@
 ---
 title: "Exploratory Data Analysis"
 author: "Th. Senegas"
-date: Sys.Date()
+date: "2025-05-26"
 toc: true
 format:
   html:
@@ -326,19 +326,19 @@ I concluded that none of the SKUs exhibit a clear inverse price–quantity relat
 
 # 6. Key Takeaways from EDA
 
--   **Strong, consistent seasonality**
+- **Strong, consistent seasonality**
 
-    -All series (by SKU, location, region, family) show a clear yearly peak in Nov-Dec and a trough in Jan–Feb.
+All series (by SKU, location, region, family) show a clear yearly peak in Nov-Dec and a trough in Jan–Feb.
 
-**SKU × Location heterogeneity**
+- **SKU × Location heterogeneity**
 
--   Some locations consistently sell much more than others, even after accounting for size (surface area).
--   Within a location, different SKUs have distinct volume profiles.
+Some locations consistently sell much more than others, even after accounting for size (surface area).
+Within a location, different SKUs have distinct volume profiles.
 
-**Weak price sensitivity**
+- **Weak price sensitivity**
 
--   Across and within SKUs, price–quantity correlations were small (and in fact slightly positive), suggesting that price changes mainly reflect promotions or bundling rather than pure demand shifts.
+Across and within SKUs, price–quantity correlations were small (and in fact slightly positive), suggesting that price changes mainly reflect promotions or bundling rather than pure demand shifts.
 
-**Few true “outliers” or stock-out signals**
+- **Few true “outliers” or stock-out signals**
 
 Returns and bulk orders are rare (\<2 % of transactions), so most monthly dips aren’t driven by extreme events.

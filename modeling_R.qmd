@@ -1,7 +1,7 @@
 ---
 title: "Demand Forecasting Model with R"
 author: "Th. Senegas"
-date: Sys.Date()
+date: "2025-05-26"
 toc: true
 format:
   html:
@@ -152,7 +152,8 @@ avg_month <- df_monthly |>
 best_models <- best_models |>
   left_join(
     avg_month, by = c('Location', 'SKU')
-  )
+  ) |>
+  mutate(across(where(is.numeric), ~ round(.x, 2)))
 
 DT::datatable(best_models)
 
@@ -1145,3 +1146,17 @@ dygraph(gamma_10_xts, main = "Forecast with 95% CI - Gamma*0010") |>
 
 
 # 4. Takeaways & Limitations
+
+- **Low‐volume, intermittent series**
+
+  - Most SKU×Location series average only a handful of units sold per month, with many zero‐demand months. 
+  - Simple ARIMA/ETS/Prophet models struggled on the lowest‐volume, most intermittent series (high MAE/RMSE relative to mean demand).
+  - If we cant to keep the SKU x Location level we could explore or time series forecasting methods which are designed for forecasting series with many zeros (Crostom for exemple.).Otherwise we can forecast at a higher level (Product Family or Region) and after that allocate down to SKU*Location by historical Sales.
+
+- **Stock‐out bias**
+
+  - Our data capture only fulfilled sales, not actual demand. When inventory is exhausted, recorded sales drop to zero, even if customer demand remained.
+
+- **Inferring “Implied Demand”**
+
+  - By incorporating inventory or production capacity data, we can estimate the unobserved portion of demand . Forecasting this implied demand rather than raw sales should yield more accurate predictions of true customer need.  

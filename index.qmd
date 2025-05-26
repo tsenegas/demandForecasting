@@ -1,10 +1,20 @@
 ---
 title: "Demand Forecasting"
+author: "Th. Senegas"
+date: "2025-05-26"
+toc: true
+format:
+  html:
+    html-math-method: katex
+    code-tools: true
+    self-contained: true
+execute:
+  warning: false
 ---
 
 # Executive Summary
 
-This project showcases my technical and analytical skills through the completion of a comprehensive data science assessment provided by IVADO Labs. required performing exploratory data analysis (EDA) and developing predictive models to generate demand forecasts for use in an inventory management solution.
+This project showcases my technical and analytical skills through the completion of a comprehensive data science assessment provided by IVADO Labs. It required performing exploratory data analysis (EDA) and developing predictive models to generate demand forecasts for use in an inventory management solution.
 
 Leveraging my primary proficiency in R, I conducted a detailed EDA and built an initial forecasting model using established time-series techniques. To demonstrate flexibility and broaden the solution’s applicability, I then implemented an alternative forecasting approach in Python, allowing for a direct comparison between two differents forecasting models with their pros and cons.
 
@@ -12,20 +22,17 @@ Leveraging my primary proficiency in R, I conducted a detailed EDA and built an 
 
 1.  Exploratory Data Analysis (EDA)
 2.  Data Preparation and Modeling
-3.  Deployment: Package the model in a cross-platform, reproducible environment using Docker
-
-## Highlights
-
--   **Predictive Modeling**: Built a streamlined model pipeline using run and wicket data to predict performance metrics, emphasizing reproducibility and interpretability.
--   **Reproducible Deployment**: Leveraged containerization to ensure cross-platform usability, along with CLI tools for local execution.
-
-This work demonstrates my ability to design end-to-end data solutions, leveraging my expertise in modeling and reproducible deployment. The methodology and results are detailed throughout this site to provide transparency and insight into my problem-solving approach.
 
 # Part I: EDA
 
 In the first part, we present an EDA of the data provided in 3 separates csv files (locations.csv, products.csv and transactions.csv)
 
-The key takeways from our EDA are : - Strong, consistent seasonality - SKU × Location heterogeneity - Weak price sensitivity - Few true “outliers” or stock-out signals
+The key takeways from our EDA are :
+
+- Strong, consistent seasonality
+- SKU × Location heterogeneity
+- Weak price sensitivity
+- Few true “outliers” or stock-out signals
 
 For a detailed view of EDA, check the following page:
 
@@ -33,39 +40,87 @@ For a detailed view of EDA, check the following page:
 
 # Part II: Data Preparation and Modeling
 
-## First Model in R
+## Time-Series Forecast with R
 
-Here are my intermediate data after first cleaning :
+See full code and explanation [here](modeling_R.html).
 
--   [Intermediate data, in csv](https://docs.google.com/spreadsheets/d/1DeIHBTV5s94A6IjrO8mPDSUp21-Mqs5eyOJ5E6iYWzw/edit?usp=sharing){target="_blank"}
+On this first try, I forecast demand at the **SKU × Location** level for the following reasons:
 
-You can show in details my code and explanation to went from raw data to that dataset [here](data_processing.html)
+- **Operational relevance**  
+    - Inventory and replenishment decisions are made at the store (Location) and item (SKU) level. Precise SKU × Location forecasts help minimize stock-outs and overstock.
 
-You can also access the RScript directly on my GitHub repo - [data_processing.R](https://github.com/tsenegas/cricketML/blob/main/scripts/data_processing.R){target="_blank"}
 
-## Second Model in Python
+- **Captures local demand patterns**  
+    - Each Location has its own seasonality, promotions, and customer mix.
 
-We've created a very basic and simple ML model to predict an average team's expected runs per over. Find the code and explanation [here](data_modelling.html)
 
-You can also access the RScript directly on my GitHub repo - [data_modelling.R](https://github.com/tsenegas/cricketML/blob/main/scripts/data_modelling.R){target="_blank"}
+- **Supports hierarchical consistency**  
+    - A bottom-up SKU × Location forecast can be aggregated to Region or Family level, ensuring that high-level dashboards always roll up correctly from the detailed forecasts driving operations.
+    
 
-# Part III: Deployment using docker
+- **Manages noise vs. scale**  
+    - With only 3 SKUs and 10 locations (30 series total), it’s a manageable modeling effort. We get detailed forecasts without an unmanageable number of models.
 
-You can download docker's image [here](https://drive.google.com/file/d/1aO6sgYZeBRZhDNS_JWJbTGVjdkE4dAZJ/view?usp=sharing){target="_blank"}
 
-Once downloaded, upload the image on your computer and run it - there are some pre requis : - You need to have docker.desktop (For Windows or Mac depending of your OS / Get Docker Engine on Linux) - On your cmd invit, navigate to the folder where you download the docker image and type : docker load -i cricket_model.tar - from your cmd invit, type docker run --rm -it cricket_model (you need to put -it, as you will need to select options)
+- **Flexibility for enhancements**, we can easily:
+    - Test different algorithms (ARIMA, ETS, Prophet) on each series and still reconcile them back up
 
-Running the docker's image, you will have two options :
+By forecasting at the SKU × Location level, we ensure the most actionable, accurate, and consistent demand plans, while retaining the ability to roll up to any higher aggregation needed for reporting or strategic planning.
 
--   
+I obtained moderate accuracy, explained by the following factors:
 
-    1.  Run the demo
+- **Low-volume, intermittent series**  
+    - Most SKU × Location series average only a handful of units sold per month, with many zero-demand months.  
+    - Simple ARIMA/ETS/Prophet models struggled on the lowest-volume, most intermittent series (high MAE/RMSE relative to mean demand).  
+    - If we want to stay at the SKU × Location level, we could explore time-series methods designed for intermittent series (e.g., Croston’s method). Otherwise, we can forecast at a higher level (Product Family or Region) and then allocate down to SKU × Location based on historical sales.
 
--   
 
-    2.  Run on your datas
+- **Stock-out bias**  
+    - Our sales data capture only fulfilled demand. When inventory is exhausted, recorded sales drop to zero, even if customer demand remained.
 
-For more explanation to see the process to create the image and to run it, you can take a look [there](deployment.html)
+
+- **Inferring Implied Demand**  
+    - By incorporating inventory or production data, we can estimate the unobserved portion of demand. Forecasting this implied demand rather than raw sales should yield more accurate predictions of true customer need.
+
+## Machine Learning Forecasting with LightGBM in Python
+
+See full code and explanation [here](modeling_Python.html).
+
+Building on the SKU × Location experiments, I applied a **LightGBM** model at the **Product Family × Region Type** level. This higher aggregation led to better accuracy and the following insights:
+
+- **Aggregation helps**  
+    - Pooling many SKU × Location series into a handful of family × region series stabilizes the demand signal and gives the model more to learn from. The average RMSE across the six series was ~11.5 units.
+
+
+- **Missing drivers**  
+    - Without inventory or promotion data (implied demand features), the model cannot distinguish zeros from true zero demand vs. stock-outs.
+
+
+- **Feature enhancements** could include:
+    - Adding calendar effects (holidays, seasonality flags)  
+    - Introducing exogenous variables (price, promotions, weather)  
+    - Engineering higher-order lags or rolling windows 
+
+# Global Conclusion
+
+The primary goal of this assessment was to develop a demand-forecasting engine that can feed directly into an inventory management solution for optimizing stock levels, minimizing both stock-outs and overstock, and aligning replenishment decisions with true customer needs.
+
+- **Raw sales vs. true demand**  
+    - Our experiments on SKU × Location and Product-Family × Region-Type series demonstrated that classical and ML models can deliver reasonable accuracy on historical sales, but **raw sales data alone are biased by stock-outs**. Zero or low sales in a month may reflect no demand or simply no inventory!
+
+
+- **The critical role of implied demand**  
+    - To unlock the best performance and truly meet customer need, we **must integrate on-hand inventory and production data**. By estimating the implied demand, we can build a forecasting target that reflects real customer pull, rather than just fulfilled sales.
+
+
+- **Towards an optimized inventory management solution**  
+    1. **Ingest inventory levels** alongside sales transactions.  
+    2. **Compute implied demand** by adding back the unfulfilled portion whenever stock reached zero.  
+    3. **Forecast implied demand** with the same ML pipeline (e.g., LightGBM on engineered features), yielding more accurate predictions of true need.  
+    4. **Drive inventory policies** directly from these implied demand forecasts that can be adjusted by experts who can have information that the model doesn't take into account (promotional campaign, new products, macro-economics shock, etc.)
+
+By closing the loop between inventory data and sales forecasting, we create a feedback-driven, demand-informed replenishment process, delivering the most effective inventory management solution.
+
 
 # Set-up
 
@@ -77,15 +132,11 @@ Here's the set-up to reproduce the same conditions
 
 -   Install R version 4.4.1 - [Install R 4.4.2](https://cran.r-project.org/bin/windows/base/)
 
--   Install Python 3.12.16 - [Install Python 3.12.16](https://www.python.org/downloads/release/python-3120/)
-
--   Install the latest Visual C++ Redistributable - [Windows Visual C++ Redistributable Version](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-microsoft-visual-c-redistributable-version)
+-   Install Python 3.13.1 - [Install Python 3.12.16](https://www.python.org/downloads/release/python-3131/)
 
 -   Install Positron IDE - [Positron](https://github.com/posit-dev/positron/releases)
 
--   Docker Desktop for Windons (AMD64) - [Docker Desktop](https://www.docker.com/get-started/)
-
-You can also access the whole git for this project [here](https://github.com/tsenegas/demandForecasting) and install all the packages used using renv, see code below:
+You can also access the whole git for this project [here](https://github.com/tsenegas/demandForecasting) and install all the R packages used using renv, see code below:
 
 ```{r eval=FALSE}
 install.packages("renv")

@@ -17,7 +17,8 @@ website:
     right:
       - icon: github
         href: https://github.com/tsenegas/demandForecasting
-      - about.qmd
+      - href: about.qmd
+        text: About me
             
 
 format:

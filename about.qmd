@@ -1,0 +1,11 @@
+---
+title: "About me"
+---
+
+I'm Thibault Senegas, a self-taught programmer and expert in R and Shiny. As a Lead Data Scientist and Chief Product Owner at quantum simulations*, I lead the creation of AI and Data solutions for companies, sports teams, and geographical regions. My focus is on merging cutting-edge data science with real-world applications.
+
+I hold an M.Sc. in International Business from HEC Montréal and a Master's degree in Engineering from INP/ENSIACET in Toulouse, France. Before joining quantum simulations*, I honed my skills as a Data Scientist at IBM in their Advanced Analytics practice.
+
+I currently reside in Montréal, QC, with my wife and two sons.
+
+[My Resume](resume_ThS_2025.pdf)
